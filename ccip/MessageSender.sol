@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20; // @openzeppelin/contracts@5.2.0 Ownable requires at leats 0.8.20
+pragma solidity ^0.8.20; // @openzeppelin/contracts@5.2.0 Ownable requires at least 0.8.20
 
 import {IRouterClient} from "@chainlink/contracts-ccip@1.5.1-beta.0/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip@1.5.1-beta.0/src/v0.8/ccip/libraries/Client.sol";
