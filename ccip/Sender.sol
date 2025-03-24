@@ -6,20 +6,18 @@ import {Client} from "@chainlink/contracts-ccip@1.5.0/src/v0.8/ccip/libraries/Cl
 import {IERC20} from "@chainlink/contracts-ccip@1.5.0/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@chainlink/contracts-ccip@1.5.0/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts@5.2.0/access/Ownable.sol";
+import {IVault} from "./interfaces/IVault.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
-contract CCIPTransfer is Ownable {
+contract Sender is Ownable {
     using SafeERC20 for IERC20;
 
-    error CCIPTransfer__InsufficientBalance(IERC20 token, uint256 currentBalance, uint256 requiredAmount);
-    error CCIPTransfer__NothingToWithdraw();
-
     // https://docs.chain.link/ccip/supported-networks/v1_2_0/testnet#ethereum-testnet-sepolia
-    IRouterClient private constant CCIP_ROUTER = IRouterClient(0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59);
+    IRouterClient private constant ROUTER = IRouterClient(0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59);
     // https://docs.chain.link/resources/link-token-contracts#ethereum-testnet-sepolia
     IERC20 private constant LINK_TOKEN = IERC20(0x779877A7B0D9E8603169DdbD7836e478b4624789);
     // https://developers.circle.com/stablecoins/docs/usdc-on-test-networks
@@ -35,17 +33,21 @@ contract CCIPTransfer is Ownable {
         uint256 ccipFee
     );
 
+    error Sender__InsufficientBalance(IERC20 token, uint256 currentBalance, uint256 requiredAmount);
+    error Sender__NothingToWithdraw();
+
     constructor() Ownable(msg.sender) {}
 
     function transferUSDC(
         address _receiver,
-        uint256 _amount
+        uint256 _amount,
+        address _target
     )
         external
         returns (bytes32 messageId)
     {
         if (_amount > USDC_TOKEN.balanceOf(msg.sender)) {
-            revert CCIPTransfer__InsufficientBalance(USDC_TOKEN, USDC_TOKEN.balanceOf(msg.sender), _amount);
+            revert Sender__InsufficientBalance(USDC_TOKEN, USDC_TOKEN.balanceOf(msg.sender), _amount);
         }
         Client.EVMTokenAmount[]
             memory tokenAmounts = new Client.EVMTokenAmount[](1);
@@ -54,33 +56,41 @@ contract CCIPTransfer is Ownable {
             amount: _amount
         });
         tokenAmounts[0] = tokenAmount;
+        bytes memory functionCallData = abi.encodeWithSelector(
+            IVault.deposit.selector,
+            msg.sender,
+            _amount
+        );
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(_receiver),
-            data: "",
+            data: abi.encode(
+                _target, // Address of the target contract
+                functionCallData
+            ),// Encode the function selector and the arguments of the stake function
             tokenAmounts: tokenAmounts,
             extraArgs: Client._argsToBytes(
-                Client.EVMExtraArgsV1({gasLimit: 0})
+                Client.EVMExtraArgsV1({gasLimit: 200000}) // we need a gas limit to call the receive function
             ),
             feeToken: address(LINK_TOKEN)
         });
 
-        uint256 ccipFee = CCIP_ROUTER.getFee(
+        uint256 ccipFee = ROUTER.getFee(
             DESTINATION_CHAIN_SELECTOR,
             message
         );
 
         if (ccipFee > LINK_TOKEN.balanceOf(address(this))) {
-            revert CCIPTransfer__InsufficientBalance(LINK_TOKEN, LINK_TOKEN.balanceOf(address(this)), ccipFee);
+            revert Sender__InsufficientBalance(LINK_TOKEN, LINK_TOKEN.balanceOf(address(this)), ccipFee);
         }
 
-        LINK_TOKEN.approve(address(CCIP_ROUTER), ccipFee);
+        LINK_TOKEN.approve(address(ROUTER), ccipFee);
 
         USDC_TOKEN.safeTransferFrom(msg.sender, address(this), _amount);
-        USDC_TOKEN.approve(address(CCIP_ROUTER), _amount);
+        USDC_TOKEN.approve(address(ROUTER), _amount);
 
         // Send CCIP Message
-        messageId = CCIP_ROUTER.ccipSend(DESTINATION_CHAIN_SELECTOR, message);
+        messageId = ROUTER.ccipSend(DESTINATION_CHAIN_SELECTOR, message);
 
         emit USDCTransferred(
             messageId,
@@ -95,7 +105,7 @@ contract CCIPTransfer is Ownable {
         address _beneficiary
     ) public onlyOwner {
         uint256 amount = IERC20(USDC_TOKEN).balanceOf(address(this));
-        if (amount == 0) revert CCIPTransfer__NothingToWithdraw();
+        if (amount == 0) revert Sender__NothingToWithdraw();
         IERC20(USDC_TOKEN).transfer(_beneficiary, amount);
     }
 }
