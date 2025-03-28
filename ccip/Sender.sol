@@ -56,7 +56,7 @@ contract Sender is Ownable {
             amount: _amount
         });
         tokenAmounts[0] = tokenAmount;
-        bytes memory functionCallData = abi.encodeWithSelector(
+        bytes memory depositFunctionCalldata = abi.encodeWithSelector(
             IVault.deposit.selector,
             msg.sender,
             _amount
@@ -66,7 +66,7 @@ contract Sender is Ownable {
             receiver: abi.encode(_receiver),
             data: abi.encode(
                 _target, // Address of the target contract
-                functionCallData
+                depositFunctionCalldata
             ),// Encode the function selector and the arguments of the stake function
             tokenAmounts: tokenAmounts,
             extraArgs: Client._argsToBytes(
