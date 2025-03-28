@@ -12,11 +12,11 @@ import {Ownable} from "@openzeppelin/contracts@5.2.0/access/Ownable.sol";
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
-contract CCIPTransfer is Ownable {
+contract CCIPTokenSender is Ownable {
     using SafeERC20 for IERC20;
 
-    error CCIPTransfer__InsufficientBalance(IERC20 token, uint256 currentBalance, uint256 requiredAmount);
-    error CCIPTransfer__NothingToWithdraw();
+    error CCIPTokenSender__InsufficientBalance(IERC20 token, uint256 currentBalance, uint256 requiredAmount);
+    error CCIPTokenSender__NothingToWithdraw();
 
     // https://docs.chain.link/ccip/supported-networks/v1_2_0/testnet#ethereum-testnet-sepolia
     IRouterClient private constant CCIP_ROUTER = IRouterClient(0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59);
@@ -45,7 +45,7 @@ contract CCIPTransfer is Ownable {
         returns (bytes32 messageId)
     {
         if (_amount > USDC_TOKEN.balanceOf(msg.sender)) {
-            revert CCIPTransfer__InsufficientBalance(USDC_TOKEN, USDC_TOKEN.balanceOf(msg.sender), _amount);
+            revert CCIPTokenSender__InsufficientBalance(USDC_TOKEN, USDC_TOKEN.balanceOf(msg.sender), _amount);
         }
         Client.EVMTokenAmount[]
             memory tokenAmounts = new Client.EVMTokenAmount[](1);
@@ -71,7 +71,7 @@ contract CCIPTransfer is Ownable {
         );
 
         if (ccipFee > LINK_TOKEN.balanceOf(address(this))) {
-            revert CCIPTransfer__InsufficientBalance(LINK_TOKEN, LINK_TOKEN.balanceOf(address(this)), ccipFee);
+            revert CCIPTokenSender__InsufficientBalance(LINK_TOKEN, LINK_TOKEN.balanceOf(address(this)), ccipFee);
         }
 
         LINK_TOKEN.approve(address(CCIP_ROUTER), ccipFee);
@@ -95,7 +95,7 @@ contract CCIPTransfer is Ownable {
         address _beneficiary
     ) public onlyOwner {
         uint256 amount = IERC20(USDC_TOKEN).balanceOf(address(this));
-        if (amount == 0) revert CCIPTransfer__NothingToWithdraw();
+        if (amount == 0) revert CCIPTokenSender__NothingToWithdraw();
         IERC20(USDC_TOKEN).transfer(_beneficiary, amount);
     }
 }
