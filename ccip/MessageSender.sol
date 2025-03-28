@@ -43,7 +43,6 @@ contract MessageSender is Ownable {
     /// @dev Assumes your contract has sufficient LINK.
     /// @param destinationChainSelector The identifier (aka selector) for the destination blockchain.
     /// @param receiver The address of the recipient on the destination blockchain.
-    /// @param text The string text to be sent.
     /// @return messageId The ID of the message that was sent.
     function sendMessage(
         uint64 destinationChainSelector,
