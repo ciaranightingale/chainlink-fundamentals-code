@@ -47,13 +47,12 @@ contract MessageSender is Ownable {
     /// @return messageId The ID of the message that was sent.
     function sendMessage(
         uint64 destinationChainSelector,
-        address receiver,
-        string calldata text
+        address receiver
     ) external onlyOwner returns (bytes32 messageId) {
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
             receiver: abi.encode(receiver), // ABI-encoded receiver address
-            data: abi.encode(text), // ABI-encoded string
+            data: abi.encode("Hey there!"), // ABI-encoded string
             tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array indicating no tokens are being sent
             extraArgs: Client._argsToBytes(
                 Client.EVMExtraArgsV1({gasLimit: 200000}) // we need a gas limit to call the receive function
@@ -82,7 +81,7 @@ contract MessageSender is Ownable {
             messageId,
             destinationChainSelector,
             receiver,
-            text,
+            "Hey there!",
             address(s_linkToken),
             fees
         );
