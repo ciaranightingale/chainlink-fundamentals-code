@@ -5,6 +5,6 @@ contract TimeBased {
     uint256 public counter;
 
     function count() public {  
-        counter += 1;  // this is equivalent to counter = counter + 1 (just simpler to read - neat right!)
+        counter ++;  // this is equivalent to counter = counter + 1 (just simpler to read - neat right!)
     }  
 }
